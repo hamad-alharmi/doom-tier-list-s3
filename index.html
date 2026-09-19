@@ -48,13 +48,11 @@ document.addEventListener('error', e => {
 
 /* ===== KIT ICON FALLBACKS — remote URL → local /icons copy → hex letter tile ===== */
 function modeIconFail(img){
-  /* 1st failure: try the local copy in /icons (if you ever upload one) */
   if (!img.dataset.localTried && img.dataset.local){
     img.dataset.localTried = '1';
     img.src = img.dataset.local;
     return;
   }
-  /* 2nd failure: hex letter tile so nothing ever looks broken */
   const k = img.dataset.mode || '';
   const letters = {sword:'S', mace:'M', smp:'SMP', cart:'C', uhc:'U'};
   const letter = letters[k] || '?';
@@ -319,6 +317,15 @@ body.menu-open{overflow:hidden}
 .bracket-note{display:flex;align-items:center;gap:12px;border:1px dashed var(--line2);border-radius:var(--r-lg);
   padding:20px;margin-top:40px;color:var(--dim);font:600 14px var(--fb)}
 .bracket-note .ic{width:19px;height:19px;color:var(--rose)}
+/* compact mode for big brackets (32+) */
+.bracket.big{gap:18px;min-width:1150px}
+.bracket.big .bcol{min-width:138px}
+.bracket.big .bmatch{border-radius:10px}
+.bracket.big .bm-top{padding:5px 9px;font-size:8px}
+.bracket.big .bm-row{padding:5px 9px;gap:7px}
+.bracket.big .bm-row img{display:none}
+.bracket.big .bm-row span{font-size:11px}
+.bracket.big .bm-row b{font-size:11px}
 
 /* ================= TIER TEST ================= */
 .tt-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:40px;align-items:start}
@@ -485,13 +492,15 @@ footer{border-top:1px solid var(--line);padding:26px 0}
 .bs-round-h{font:800 10px var(--fd);letter-spacing:.22em;color:var(--dim);margin:0 0 8px 2px}
 .bs-match{display:grid;grid-template-columns:1fr 52px 52px;gap:8px;align-items:center;margin-bottom:8px;
   border:1px solid var(--line);border-radius:12px;background:#141419;padding:9px 11px}
-.bs-match .lb{font:800 11px var(--fd);color:var(--mut)}
+.bs-match .lb{font:800 11px var(--fd);color:var(--mut);white-space:nowrap}
 .bs-match .f-input{padding:8px 10px;font-size:13px;text-align:center}
 .bs-hint{grid-column:1 / -1;font:700 11px var(--fb);color:var(--dim);min-height:14px;margin-top:-2px}
 .bs-hint.ok{color:var(--green)}
-.bs-size{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.bs-size{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .bs-size label{font:800 10px var(--fd);letter-spacing:.2em;color:var(--dim)}
-.bs-size select{width:110px}
+.bs-size select{width:130px}
+#bulkArea{font-family:ui-monospace,monospace;font-size:13px;min-height:120px}
+.bs-bulk-row{display:flex;gap:10px;align-items:center;margin-top:8px}
 .add-btn{display:inline-flex;align-items:center;gap:10px;border:1.5px dashed var(--line2);border-radius:14px;
   padding:14px 22px;font:900 12px var(--fd);letter-spacing:.2em;color:var(--mut);transition:.2s}
 .add-btn .ic{width:15px;height:15px}
@@ -664,7 +673,7 @@ footer{border-top:1px solid var(--line);padding:26px 0}
   <div class="wrap">
     <div class="eyebrow rv"><svg class="ic"><use href="#i-trophy"/></svg>THE KICKOFF</div>
     <h2 class="h2 rv" style="--d:.05s">Tournament bracket</h2>
-    <p class="sub rv" style="--d:.1s">This decides the first order. Enter scores as matches are played — winners advance automatically.</p>
+    <p class="sub rv" style="--d:.1s">Up to 128 players. Enter scores as matches are played — winners advance automatically.</p>
     <div id="bracketList" class="rv" style="--d:.15s"></div>
   </div>
 </section>
@@ -868,6 +877,7 @@ const MODES = [
   {k:'uhc',   label:'UHC',   full:'UHC',   img:'https://pvptiers.com/icons/modes/uhc.webp',   local:'/icons/uhc.png'}
 ];
 const REGIONS = ['','NA','SA','EU','AS','OCE','AF'];
+const BRACKET_SIZES = [2,4,8,16,32,64,128];
 const DEFAULTS = {
   players:[{name:'Valuify', tier:'S+', region:'NA',
     modes:{sword:'S+', mace:'S', smp:'A', cart:'B', uhc:'N/A'}}],
@@ -977,7 +987,6 @@ async function resolveSkin(name){
 function modeIcon(key, cls){
   const m = MODES.find(x => x.k === key) || MODES[0];
   if (m.k === 'cart'){
-    /* subtiers minecart is frameless — hex frame drawn around it */
     return '<span class="hexcart" role="img" aria-label="Cart">' +
       '<svg viewBox="0 0 64 64" aria-hidden="true">' +
         '<path d="M15 3 L49 3 L61 15 L61 49 L49 61 L15 61 L3 49 L3 15 Z" fill="url(#hexgrad)"/>' +
@@ -1048,8 +1057,20 @@ function renderBoard(){
 }
 
 /* =====================================================
-   BRACKET TREE
+   BRACKET TREE — 2 to 128 players, byes auto-advance
 ===================================================== */
+function roundNames(size){
+  const counts = []; let n = size/2; while(n >= 1){ counts.push(n); n /= 2; }
+  const labels = [], shorts = [];
+  counts.forEach((_, r) => {
+    const players = size / Math.pow(2, r);
+    if(players === 2){ labels.push('FINAL'); shorts.push('F'); }
+    else if(players === 4){ labels.push('SEMIFINALS'); shorts.push('SF'); }
+    else if(players === 8){ labels.push('QUARTERFINALS'); shorts.push('QF'); }
+    else { labels.push('ROUND OF ' + players); shorts.push('R' + players); }
+  });
+  return {counts, labels, shorts};
+}
 function bracketModel(b){
   const size = b.size || 8;
   const counts = []; let n = size/2; while(n >= 1){ counts.push(n); n /= 2; }
@@ -1064,10 +1085,14 @@ function bracketModel(b){
   function winner(mIdx){
     if(mIdx == null) return null;
     let r = 0; while(r < base.length && !(mIdx >= base[r] && mIdx < base[r] + counts[r])) r++;
+    if(r >= base.length) return null;
     const i = mIdx - base[r];
     const a = name(r, i, 0), bb = name(r, i, 1), res = get(mIdx);
     const sa = parseInt(res.sa,10), sb = parseInt(res.sb,10);
     if(!isNaN(sa) && !isNaN(sb) && sa !== sb) return { name: (sa > sb ? a : bb) || '' };
+    /* bye: empty slot → the named player advances with no score needed */
+    if(a && !bb) return { name:a };
+    if(bb && !a) return { name:bb };
     return null;
   }
   return { size, counts, base, name, winner, get };
@@ -1079,10 +1104,11 @@ function renderBracket(){
     return;
   }
   const M = bracketModel(b);
-  const labels = M.size === 8 ? ['QUARTERFINALS','SEMIFINALS','FINAL'] : ['SEMIFINALS','FINAL'];
-  let html = '<div class="bracket-scroll"><div class="bracket" id="bracketEl">';
+  const rn = roundNames(M.size);
+  const last = M.counts.length - 1;
+  let html = '<div class="bracket-scroll"><div class="bracket' + (M.size >= 32 ? ' big' : '') + '" id="bracketEl">';
   for(let r=0; r<M.counts.length; r++){
-    html += '<div class="bcol"><div class="bcol-label">' + labels[r] + '</div><div class="bround">';
+    html += '<div class="bcol"><div class="bcol-label">' + rn.labels[r] + '</div><div class="bround">';
     for(let i=0; i<M.counts[r]; i++){
       const idx = M.base[r] + i;
       const a = M.name(r,i,0), bb = M.name(r,i,1), res = M.get(idx);
@@ -1095,14 +1121,14 @@ function renderBracket(){
                  '<span>' + (esc(n) || 'TBD') + '</span><b>' + esc(sc || '–') + '</b></div>';
       };
       html += '<div class="bmatch" data-c="' + r + ':' + i + '" data-idx="' + idx + '">' +
-                '<div class="bm-top"><span>' + (r===M.counts.length-1 ? 'FINAL' : labels[r].slice(0,2) + ' ' + (i+1)) + '</span>' +
-                '<span class="bft">' + (r===M.counts.length-1 ? 'FT5' : 'FT3') + '</span></div>' +
+                '<div class="bm-top"><span>' + (r===last ? 'FINAL' : rn.shorts[r] + ' ' + (i+1)) + '</span>' +
+                '<span class="bft">' + (r===last ? 'FT5' : 'FT3') + '</span></div>' +
                 row(a, res.sa) + row(bb, res.sb) +
               '</div>';
     }
     html += '</div></div>';
   }
-  const champ = M.winner(M.base[M.counts.length-1]);
+  const champ = M.winner(M.base[last]);
   html += '<div class="bcol bcol-champ"><div class="bcol-label">CHAMPION</div>' +
             '<div class="bchamp" data-c="champ"><svg class="ic"><use href="#i-trophy"/></svg>' +
             '<small>SEASON 3 CHAMPION</small><b class="' + (champ?'':'tbd') + '">' + (esc(champ && champ.name) || 'TBD') + '</b></div></div>';
@@ -1486,29 +1512,36 @@ function renderAdmPlayers(){
 function renderAdmBracket(){
   const b = draft.bracket;
   const size = b.size || 8;
-  const counts = []; let n = size/2; while(n >= 1){ counts.push(n); n /= 2; }
-  const labels = size === 8 ? ['QUARTERFINALS','SEMIFINALS','FINAL'] : ['SEMIFINALS','FINAL'];
-  const base = []; let acc = 0; counts.forEach(c => { base.push(acc); acc += c; });
-  const M = bracketModel(b);
+  const rn = roundNames(size);
+  const last = rn.counts.length - 1;
+  const base = []; let acc = 0; rn.counts.forEach(c => { base.push(acc); acc += c; });
   let html =
     '<label class="pub-toggle"><input type="checkbox" id="admPublic"' + (b.isPublic ? ' checked' : '') + '>' +
       '<span class="pub-box"><svg class="ic"><use href="#i-check"/></svg></span><span class="lb">Bracket is public</span></label>' +
-    '<p class="ed-hint"><b>How it works:</b> type the Round 1 seeds below. Fill in scores as matches finish — the winner advances to the next round automatically and the champion fills in at the end.</p>' +
+    '<p class="ed-hint"><b>How it works:</b> pick a size (2–128), fill the Round 1 seeds, then enter scores as matches finish. Winners advance automatically and the champion fills in at the end. <b>Empty seed = bye</b> — that player advances for free, so any player count works.</p>' +
     '<div class="bs-size"><label>BRACKET SIZE</label><select class="f-input" id="admSize">' +
-      [8,4].map(s => '<option value="'+s+'"'+(s===size?' selected':'')+'>'+s+' players</option>').join('') +
+      BRACKET_SIZES.map(s => '<option value="'+s+'"'+(s===size?' selected':'')+'>'+s+' players</option>').join('') +
     '</select></div>' +
-    '<div class="bs-round-h">ROUND 1 SEEDS</div><div class="bs-seeds">' +
+    '<button class="add-btn" id="bulkBtn" type="button" style="margin:0 0 10px"><svg class="ic"><use href="#i-plus"/></svg>PASTE NAMES — FILL ALL SEEDS</button>' +
+    '<div id="bulkWrap" style="display:none;margin-bottom:14px">' +
+      '<textarea class="f-input" id="bulkArea" rows="8" placeholder="One IGN per line — order = seeding.&#10;Line 1 vs line 2, line 3 vs line 4, and so on. Extra lines past ' + size + ' are ignored."></textarea>' +
+      '<div class="bs-bulk-row">' +
+        '<button class="btn btn-rose btn-sm" id="bulkApply" type="button">FILL SEEDS</button>' +
+        '<span class="bs-hint" id="bulkMsg" style="min-height:0;margin:0"></span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="bs-round-h">SEEDS — ' + size + ' SLOTS (empty = bye)</div><div class="bs-seeds">' +
       Array.from({length:size}, (_,i) =>
         '<input class="f-input" data-seed="' + i + '" value="' + esc((b.seeds||[])[i]||'') + '" placeholder="Seed ' + (i+1) + '">'
       ).join('') +
     '</div>';
-  for(let r=0; r<counts.length; r++){
-    html += '<div class="bs-round"><div class="bs-round-h">' + labels[r] + (r===counts.length-1 ? ' · FT5' : ' · FT3') + '</div>';
-    for(let i=0; i<counts[r]; i++){
+  for(let r=0; r<rn.counts.length; r++){
+    html += '<div class="bs-round"><div class="bs-round-h">' + rn.labels[r] + (r===last ? ' · FT5' : ' · FT3') + '</div>';
+    for(let i=0; i<rn.counts[r]; i++){
       const idx = base[r] + i;
       const res = (b.results||[])[idx] || {sa:'',sb:''};
       html += '<div class="bs-match">' +
-        '<span class="lb">' + (r===counts.length-1 ? 'FINAL' : labels[r].slice(0,2) + ' ' + (i+1)) + '</span>' +
+        '<span class="lb">' + (r===last ? 'FINAL' : rn.shorts[r] + ' ' + (i+1)) + '</span>' +
         '<input class="f-input" data-res="sa" data-idx="' + idx + '" value="' + esc(res.sa) + '" placeholder="0" inputmode="numeric">' +
         '<input class="f-input" data-res="sb" data-idx="' + idx + '" value="' + esc(res.sb) + '" placeholder="0" inputmode="numeric">' +
         '<div class="bs-hint" id="whint-' + idx + '"></div>' +
@@ -1530,6 +1563,25 @@ function updateWinnerHints(){
     el.className = 'bs-hint' + (w && w.name ? ' ok' : '');
   });
 }
+ $('#paneBracket').addEventListener('click', e => {
+  if(e.target.closest('#bulkBtn')){
+    const w = $('#bulkWrap');
+    w.style.display = w.style.display === 'none' ? 'block' : 'none';
+    if(w.style.display === 'block'){ const ta = $('#bulkArea'); ta.focus(); }
+    return;
+  }
+  if(e.target.closest('#bulkApply')){
+    const size = draft.bracket.size || 8;
+    const names = ($('#bulkArea').value || '').split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    if(!names.length){ toast('Paste at least one name first.', true); return; }
+    const kept = names.slice(0, size);
+    draft.bracket.seeds = Array.from({length:size}, (_,i) => kept[i] || '');
+    markDirty(); renderAdmBracket();
+    const byes = size - kept.length;
+    toast('Seeded ' + kept.length + ' players' + (byes ? ' · ' + byes + ' bye' + (byes===1?'':'s') : '') + '.');
+    return;
+  }
+});
  $('#paneBracket').addEventListener('input', e => {
   if(e.target.id === 'admPublic'){ draft.bracket.isPublic = e.target.checked; markDirty(); return; }
   if(e.target.id === 'admSize'){
@@ -1538,7 +1590,9 @@ function updateWinnerHints(){
     const results = []; let n = newSize/2;
     while(n >= 1){ for(let i=0;i<n;i++) results.push({sa:'',sb:''}); n /= 2; }
     draft.bracket.size = newSize; draft.bracket.seeds = seeds; draft.bracket.results = results;
-    markDirty(); renderAdmBracket(); return;
+    markDirty(); renderAdmBracket();
+    toast('Bracket resized to ' + newSize + ' — scores were reset.');
+    return;
   }
   if(e.target.dataset.seed !== undefined){
     draft.bracket.seeds[+e.target.dataset.seed] = e.target.value;
