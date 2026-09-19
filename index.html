@@ -670,17 +670,17 @@ footer{border-top:1px solid var(--line);padding:26px 0}
     <p class="sub rv" style="--d:.1s">You need to be more than a one-kit wonder — the board measures the whole player, not their best button.</p>
     <div class="kits-grid">
       <div class="kitcard rv">
-        <img src="https://pvptiers.com/icons/modes/sword.webp" data-mode="sword" data-local="/icons/sword.png" alt="Sword kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
+        <img src="https://mctiers.com/tier_icons/sword.svg" data-mode="sword" data-local="/icons/sword.png" alt="Sword kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
         <b>Sword</b>
         <p>Netherite blade, shield up, textbook dueling. Every other kit gets measured against this one.</p>
       </div>
       <div class="kitcard rv" style="--d:.05s">
-        <img src="https://pvptiers.com/icons/modes/mace.webp" data-mode="mace" data-local="/icons/mace.png" alt="Mace kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
+        <img src="https://mctiers.com/tier_icons/mace.svg" data-mode="mace" data-local="/icons/mace.png" alt="Mace kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
         <b>Mace</b>
         <p>One smash decides everything. Climb, fall, delete — miss the boost and you're the one getting deleted.</p>
       </div>
       <div class="kitcard rv" style="--d:.1s">
-        <img src="https://pvptiers.com/icons/modes/smp.webp" data-mode="smp" data-local="/icons/smp.png" alt="SMP kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
+        <img src="https://mctiers.com/tier_icons/smp.svg" data-mode="smp" data-local="/icons/smp.png" alt="SMP kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
         <b>SMP</b>
         <p>Home turf. No surprises and no excuses — the other fighter knows this kit just as well as you do.</p>
       </div>
@@ -690,7 +690,7 @@ footer{border-top:1px solid var(--line);padding:26px 0}
         <p>Fast trades, scarce heals, zero room for drift — a kit that punishes hesitation on every exchange.</p>
       </div>
       <div class="kitcard rv" style="--d:.2s">
-        <img src="https://pvptiers.com/icons/modes/uhc.webp" data-mode="uhc" data-local="/icons/uhc.png" alt="UHC kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
+        <img src="https://mctiers.com/tier_icons/uhc.svg" data-mode="uhc" data-local="/icons/uhc.png" alt="UHC kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
         <b>UHC</b>
         <p>No totems, no natural regen. Every hit is permanent and one clean read usually ends it.</p>
       </div>
@@ -901,11 +901,11 @@ const LS_KEY = 'doomsmp.board.v5';
 const TIERS = ['S+','S','A','B','C','D','E','F','N/A'];
 const TIER_CLS = {'S+':'tc-splus','S':'tc-s','A':'tc-a','B':'tc-b','C':'tc-c','D':'tc-d','E':'tc-e','F':'tc-f','N/A':'tc-na'};
 const MODES = [
-  {k:'sword', label:'SWORD', full:'Sword', img:'https://pvptiers.com/icons/modes/sword.webp', local:'/icons/sword.png'},
-  {k:'mace',  label:'MACE',  full:'Mace',  img:'https://pvptiers.com/icons/modes/mace.webp',  local:'/icons/mace.png'},
-  {k:'smp',   label:'SMP',   full:'SMP',   img:'https://pvptiers.com/icons/modes/smp.webp',   local:'/icons/smp.png'},
+  {k:'sword', label:'SWORD', full:'Sword', img:'https://mctiers.com/tier_icons/sword.svg', local:'/icons/sword.png'},
+  {k:'mace',  label:'MACE',  full:'Mace',  img:'https://mctiers.com/tier_icons/mace.svg',  local:'/icons/mace.png'},
+  {k:'smp',   label:'SMP',   full:'SMP',   img:'https://mctiers.com/tier_icons/smp.svg',   local:'/icons/smp.png'},
   {k:'cart',  label:'CART',  full:'Cart',  img:'https://subtiers.net/assets/minecart-20260909-v2.png', local:'/icons/cart.png'},
-  {k:'uhc',   label:'UHC',   full:'UHC',   img:'https://pvptiers.com/icons/modes/uhc.webp',   local:'/icons/uhc.png'}
+  {k:'uhc',   label:'UHC',   full:'UHC',   img:'https://mctiers.com/tier_icons/uhc.svg',   local:'/icons/uhc.png'}
 ];
 const REGIONS = ['','NA','SA','EU','AS','OCE','AF'];
 const BRACKET_SIZES = [2,4,8,16,32,64,128];
@@ -1012,8 +1012,9 @@ async function resolveSkin(name){
 }
 
 /* =====================================================
-   KIT ICONS — pvptiers/subtiers images; cart gets the hex
-   frame around it; failures fall back to /icons then tiles
+   KIT ICONS — mctiers SVGs; cart keeps the subtiers png
+   inside the hex frame; failures fall back to /icons then
+   hex letter tiles
 ===================================================== */
 function modeIcon(key, cls){
   const m = MODES.find(x => x.k === key) || MODES[0];
