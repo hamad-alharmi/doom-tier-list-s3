@@ -35,20 +35,26 @@ function skinImg(name, uuid, size, cls){
   const srcs = skinChain(name, uuid, size);
   return '<img class="' + (cls||'') + '" referrerpolicy="no-referrer" data-srcs="' + srcs.join('|') + '" src="' + srcs[0] + '" alt="" loading="lazy">';
 }
-/* global fallback walkers */
+/* global skin fallback walker */
 document.addEventListener('error', e => {
   const t = e.target;
   if (!t || t.tagName !== 'IMG') return;
-  if (t.dataset.srcs){                       /* skin chain */
+  if (t.dataset.srcs){
     const rest = t.dataset.srcs.split('|'); rest.shift();
     if (rest.length){ t.dataset.srcs = rest.join('|'); t.src = rest[0]; }
     else { t.dataset.srcs = ''; t.src = SKIN_PLACEHOLDER; }
   }
 }, true);
 
-/* ===== KIT ICONS — your PNGs from /icons; cart gets a hex frame drawn
-   around it; anything missing falls back to a hex tile with the mode letter ===== */
+/* ===== KIT ICON FALLBACKS — remote URL → local /icons copy → hex letter tile ===== */
 function modeIconFail(img){
+  /* 1st failure: try the local copy in /icons (if you ever upload one) */
+  if (!img.dataset.localTried && img.dataset.local){
+    img.dataset.localTried = '1';
+    img.src = img.dataset.local;
+    return;
+  }
+  /* 2nd failure: hex letter tile so nothing ever looks broken */
   const k = img.dataset.mode || '';
   const letters = {sword:'S', mace:'M', smp:'SMP', cart:'C', uhc:'U'};
   const letter = letters[k] || '?';
@@ -232,7 +238,7 @@ body.menu-open{overflow:hidden}
 .micon{width:40px;height:40px;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
 .hexicon{width:40px;height:40px;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));display:inline-block}
 .pmode b{font:900 10.5px var(--fd);color:var(--tc,#71717a);letter-spacing:.04em}
-/* Cart: your frameless TNT png + hex frame drawn around it */
+/* Cart: subtiers minecart png + hex frame drawn around it */
 .hexcart{position:relative;width:40px;height:40px;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
 .hexcart svg{position:absolute;inset:0;width:100%;height:100%}
 .hexcart img{position:absolute;inset:16%;width:68%;height:68%;object-fit:contain}
@@ -540,7 +546,7 @@ footer{border-top:1px solid var(--line);padding:26px 0}
 </head>
 <body>
 
-<!-- ============ ICONS + SHARED GRADIENT (used by cart frame + fallbacks) ============ -->
+<!-- ============ ICONS + SHARED GRADIENT (hex frame for cart + fallbacks) ============ -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <linearGradient id="hexgrad" x1="0" y1="0" x2="1" y2="1">
@@ -855,11 +861,11 @@ const LS_KEY = 'doomsmp.board.v5';
 const TIERS = ['S+','S','A','B','C','D','E','F','N/A'];
 const TIER_CLS = {'S+':'tc-splus','S':'tc-s','A':'tc-a','B':'tc-b','C':'tc-c','D':'tc-d','E':'tc-e','F':'tc-f','N/A':'tc-na'};
 const MODES = [
-  {k:'sword', label:'SWORD', full:'Sword', img:'/icons/sword.png'},
-  {k:'mace',  label:'MACE',  full:'Mace',  img:'/icons/mace.png'},
-  {k:'smp',   label:'SMP',   full:'SMP',   img:'/icons/smp.png'},
-  {k:'cart',  label:'CART',  full:'Cart',  img:'/icons/cart.png'},
-  {k:'uhc',   label:'UHC',   full:'UHC',   img:'/icons/uhc.png'}
+  {k:'sword', label:'SWORD', full:'Sword', img:'https://pvptiers.com/icons/modes/sword.webp', local:'/icons/sword.png'},
+  {k:'mace',  label:'MACE',  full:'Mace',  img:'https://pvptiers.com/icons/modes/mace.webp',  local:'/icons/mace.png'},
+  {k:'smp',   label:'SMP',   full:'SMP',   img:'https://pvptiers.com/icons/modes/smp.webp',   local:'/icons/smp.png'},
+  {k:'cart',  label:'CART',  full:'Cart',  img:'https://subtiers.net/assets/minecart-20260909-v2.png', local:'/icons/cart.png'},
+  {k:'uhc',   label:'UHC',   full:'UHC',   img:'https://pvptiers.com/icons/modes/uhc.webp',   local:'/icons/uhc.png'}
 ];
 const REGIONS = ['','NA','SA','EU','AS','OCE','AF'];
 const DEFAULTS = {
@@ -965,21 +971,22 @@ async function resolveSkin(name){
 }
 
 /* =====================================================
-   KIT ICONS — your PNGs; cart gets the hex frame around it;
-   missing files fall back to hex letter tiles (head script)
+   KIT ICONS — pvptiers/subtiers images; cart gets the hex
+   frame around it; failures fall back to /icons then tiles
 ===================================================== */
 function modeIcon(key, cls){
   const m = MODES.find(x => x.k === key) || MODES[0];
   if (m.k === 'cart'){
+    /* subtiers minecart is frameless — hex frame drawn around it */
     return '<span class="hexcart" role="img" aria-label="Cart">' +
       '<svg viewBox="0 0 64 64" aria-hidden="true">' +
         '<path d="M15 3 L49 3 L61 15 L61 49 L49 61 L15 61 L3 49 L3 15 Z" fill="url(#hexgrad)"/>' +
         '<path d="M18 8 L46 8 L56 18 L56 46 L46 56 L18 56 L8 46 L8 18 Z" fill="#0C0C0E" stroke="#000" stroke-opacity=".55" stroke-width="1.5"/>' +
       '</svg>' +
-      '<img src="' + m.img + '" data-mode="cart" alt="" loading="lazy" onerror="modeIconFail(this)">' +
+      '<img src="' + m.img + '" data-mode="cart" data-local="' + m.local + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">' +
     '</span>';
   }
-  return '<img class="micon ' + (cls||'') + '" src="' + m.img + '" data-mode="' + m.k + '" alt="' + esc(m.full) + '" loading="lazy" onerror="modeIconFail(this)">';
+  return '<img class="micon ' + (cls||'') + '" src="' + m.img + '" data-mode="' + m.k + '" data-local="' + m.local + '" alt="' + esc(m.full) + '" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">';
 }
 
 /* =====================================================
@@ -1411,7 +1418,6 @@ async function checkSkin(i){
   if(res.found){
     draft.players[i].uuid = res.uuid; markDirty();
     const srcs = skinChain(name, res.uuid, 72);
-    img.removeAttribute('data-srcs');
     img.setAttribute('data-srcs', srcs.join('|')); img.src = srcs[0];
     st.className = 'st ok';
     st.innerHTML = '· Skin found — <a href="' + namemc(name) + '" target="_blank" rel="noopener">view on NameMC ↗</a>';
