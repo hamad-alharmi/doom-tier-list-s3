@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
   const payload = {
     username: 'Tier Test Requests',
     embeds: [{
-      title: '🎯 New Tier Test Request',
+      title: 'New Tier Test Request',
       color: 0xe11d48,
       fields: [
         { name:'IGN', value: '`'+clean(b.ign,16)+'`' + (b.accountVerified ? ' ✅' : ' ⚠️ not verified'), inline:true },
