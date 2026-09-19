@@ -16,25 +16,25 @@ document.documentElement.classList.add('js');
 const SERVER_IP = 'doomevents.net';
 const DISCORD_INVITE = 'https://discord.gg/AUQezfCAY';
 const TIER_TEST_WEBHOOK_FALLBACK = 'https://discord.com/api/webhooks/1550870485842141264/dZun9Usn824NgJ8jy4uUD-TngUhzU7h820p9EUmY52sy6p6kLesBwGdWgiTfuYRMnI1G';
-/* ===== SKIN FALLBACK CHAIN — used by every avatar on the page ===== */
+/* ===== SKINS — own /api/skin proxy first, external services as fallback ===== */
 const SKIN_PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><rect width='8' height='8' fill='#3a3a41'/><rect x='1' y='1' width='6' height='6' fill='#54545e'/><rect x='2' y='3' width='1' height='1' fill='#202024'/><rect x='5' y='3' width='1' height='1' fill='#202024'/><rect x='3' y='5' width='2' height='1' fill='#202024'/></svg>");
-function skinSources(name, uuid, size){
-  const s = size || 64, n = encodeURIComponent(name || 'MHF_Steve'), list = [];
+function skinChain(name, uuid, size){
+  const s = size || 64, n = encodeURIComponent(name || 'MHF_Steve');
+  const list = ['/api/skin?n=' + n + '&s=' + s + (uuid ? '&u=' + encodeURIComponent(uuid) : '')];
   if (uuid){
     list.push('https://crafatar.com/avatars/' + uuid + '?size=' + s + '&overlay');
     list.push('https://visage.surgeplay.com/face/' + s + '/' + uuid);
   }
   list.push('https://mc-heads.net/avatar/' + n + '/' + s);
   list.push('https://minotar.net/helm/' + n + '/' + s + '.png');
-  list.push('https://visage.surgeplay.com/face/' + s + '/' + n);
   return list;
 }
 function skinImg(name, uuid, size, cls){
-  const srcs = skinSources(name, uuid, size);
-  return '<img class="' + (cls||'') + '" data-srcs="' + srcs.join('|') + '" src="' + srcs[0] + '" alt="" loading="lazy">';
+  const srcs = skinChain(name, uuid, size);
+  return '<img class="' + (cls||'') + '" referrerpolicy="no-referrer" data-srcs="' + srcs.join('|') + '" src="' + srcs[0] + '" alt="" loading="lazy">';
 }
-/* global error handler: walk the fallback chain, then placeholder */
+/* global fallback walker: proxy → externals → placeholder */
 document.addEventListener('error', e => {
   const t = e.target;
   if (!t || t.tagName !== 'IMG' || !t.dataset.srcs) return;
@@ -152,7 +152,7 @@ body.menu-open{overflow:hidden}
 .hero-sub{color:var(--mut);font-size:clamp(16px,2.4vw,19px);max-width:600px;margin:30px 0 26px}
 .hero-sub b{color:var(--txt);font-weight:700}
 .hero-ctas{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.ip-chip{display:inline-flex;align-items:center;gap:10px;font:700 13px var(--fm,monospace),monospace;font-family:'JetBrains Mono',ui-monospace,monospace;
+.ip-chip{display:inline-flex;align-items:center;gap:10px;font-family:ui-monospace,monospace;font-weight:700;font-size:13px;
   letter-spacing:.04em;color:var(--txt);background:var(--card);border:1px solid var(--line2);border-radius:999px;padding:14px 20px;transition:.2s}
 .ip-chip .ic{width:14px;height:14px;color:var(--rose)}
 .ip-chip:hover{border-color:var(--rose);transform:translateY(-2px)}
@@ -185,29 +185,28 @@ body.menu-open{overflow:hidden}
 .thead{display:grid;grid-template-columns:64px 1fr auto;gap:14px;padding:12px 22px;border-top:1px solid var(--line);
   font:800 10.5px var(--fd);letter-spacing:.24em;color:var(--dim)}
 
-/* ===== MCTiers-style overall card ===== */
-.prow{display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center;padding:16px 22px;border-top:1px solid var(--line);
+/* ===== Overall player card (MCTiers-style) ===== */
+.prow{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 22px;border-top:1px solid var(--line);
   transition:background .2s;cursor:pointer}
 .prow:hover{background:rgba(244,244,245,.03)}
-.rank-chip{position:relative;transform:skewX(-10deg);border-radius:7px;min-width:54px;height:52px;
+.rank-chip{transform:skewX(-10deg);border-radius:7px;min-width:54px;height:52px;
   display:grid;place-items:center;background:var(--tbg,#3f3f46);box-shadow:0 6px 16px -6px rgba(0,0,0,.6)}
 .rank-chip>span{transform:skewX(10deg);font:1000 19px var(--fd);color:var(--tct,#fff)}
-.rank-chip .ic{display:none}
 .head-img{width:46px;height:46px;border-radius:10px;image-rendering:pixelated;border:1px solid var(--line2)}
 .pinfo{min-width:0}
-.pname{font:900 19px var(--fd);letter-spacing:.01em;transition:color .2s}
+.pname{font:900 19px var(--fd);letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .2s}
 .prow:hover .pname{color:var(--rose)}
-.psub{display:flex;align-items:center;gap:7px;margin-top:2px;font:700 12.5px var(--fb);color:var(--mut)}
-.psub .ic{width:14px;height:14px;color:var(--gold)}
-.pside{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:flex-end}
+.psub{display:flex;align-items:center;gap:7px;margin-top:2px;font:700 12.5px var(--fb);color:var(--mut);white-space:nowrap;overflow:hidden}
+.psub .ic{width:14px;height:14px;color:var(--gold);flex:none}
+.pside{display:flex;align-items:center;gap:16px}
 .region{min-width:40px;height:32px;padding:0 9px;border-radius:8px;display:grid;place-items:center;
   font:900 12px var(--fd);letter-spacing:.04em;background:rgba(251,59,92,.14);border:1px solid rgba(251,59,92,.4);color:#ff8095}
-.pmodes{display:flex;gap:9px}
-.pmode{display:flex;flex-direction:column;align-items:center;gap:5px}
-.pmode .pic{width:36px;height:36px;border-radius:10px;background:#1b1b20;border:1px solid var(--line2);display:grid;place-items:center;color:#e5e7eb}
-.pmode .pic .ic{width:17px;height:17px}
+.pmodes{display:flex;gap:12px}
+.pmode{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:40px}
+.pmode .micon{width:38px;height:38px;transition:transform .15s}
+.prow:hover .pmode .micon{transform:translateY(-2px)}
 .pmode b{font:900 10.5px var(--fd);color:var(--tc,#71717a);letter-spacing:.04em}
-.pmode b.isna{color:#5a5a63}
+.micon{filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
 .board-empty{padding:44px 22px;text-align:center;color:var(--dim);font:600 14px var(--fb);border-top:1px solid var(--line)}
 .board-foot{margin-top:18px;color:var(--dim);font-size:14px}
 .board-foot b{color:var(--mut);font-weight:600}
@@ -257,7 +256,7 @@ body.menu-open{overflow:hidden}
 .bcol{flex:1;display:flex;flex-direction:column;min-width:172px}
 .bcol-label{font:800 10px var(--fd);letter-spacing:.24em;color:var(--dim);text-align:center;margin-bottom:14px}
 .bround{flex:1;display:flex;flex-direction:column;justify-content:space-around}
-.bmatch{border:1px solid var(--line2);background:var(--card);border-radius:14px;overflow:hidden;transition:border-color .2s,transform .2s}
+.bmatch{border:1px solid var(--line2);background:var(--card);border-radius:14px;overflow:hidden;transition:border-color .2s,transform .2s;position:relative;z-index:1}
 .bmatch:hover{transform:translateY(-2px)}
 .bmatch.hl{border-color:var(--rose)!important;background:rgba(251,59,92,.06)}
 .bm-top{display:flex;justify-content:space-between;align-items:center;padding:7px 11px;border-bottom:1px solid var(--line);
@@ -307,7 +306,6 @@ select.f-input{appearance:none;-webkit-appearance:none;cursor:pointer;padding-ri
 .tt-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .tt-ign{display:flex;gap:11px;align-items:center}
 .tt-ign img{width:42px;height:42px;border-radius:10px;image-rendering:pixelated;border:1px solid var(--line2);background:#0c0c0e;flex:none}
-.tt-ign>div{flex:1}
 .tt-status{font:600 11.5px var(--fb);color:var(--dim);margin:5px 2px 0;min-height:16px}
 .tt-status.ok{color:var(--green)}.tt-status.no{color:#fb4d63}
 
@@ -393,8 +391,9 @@ footer{border-top:1px solid var(--line);padding:26px 0}
 .pf-sec{font:800 11px var(--fd);letter-spacing:.24em;color:var(--dim);margin:22px 0 12px;display:flex;align-items:center;gap:10px}
 .pf-sec::after{content:"";flex:1;height:1px;background:var(--line)}
 .pf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-.pf-mode{border:1px solid var(--line);background:var(--card2);border-radius:14px;padding:13px 15px;display:flex;flex-direction:column;gap:8px}
+.pf-mode{border:1px solid var(--line);background:var(--card2);border-radius:14px;padding:14px 15px;display:flex;flex-direction:column;gap:9px}
 .pf-mode .lb{font:800 10px var(--fd);letter-spacing:.18em;color:var(--dim)}
+.pf-mode .micon{width:36px;height:36px}
 .pf-mode .tbadge{align-self:flex-start;min-width:48px;height:34px;font-size:14px;border-radius:10px}
 .pf-actions{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
 .tbadge{display:inline-grid;place-items:center;min-width:62px;height:42px;padding:0 14px;border-radius:12px;
@@ -479,13 +478,20 @@ footer{border-top:1px solid var(--line);padding:26px 0}
   .seg-btn{justify-content:center}
 }
 @media(max-width:640px){
-  .thead{grid-template-columns:64px 1fr;padding-inline:16px}
-  .thead span:last-child{display:none}
-  .prow{grid-template-columns:64px 1fr;padding-inline:16px;gap:12px}
-  .pside{grid-column:1 / -1;justify-content:flex-start;padding-left:76px;margin-top:-2px}
-  .head-img{width:40px;height:40px}
+  .thead{grid-template-columns:64px 1fr auto;padding-inline:16px}
+  .thead span:last-child{font-size:9px}
+  .prow{grid-template-columns:64px minmax(0,1fr) auto;padding-inline:16px;gap:12px}
+  .pside{gap:10px}
+  .region{display:none}
+  .pmodes{gap:7px}
+  .pmode{min-width:30px}
+  .pmode .micon{width:28px;height:28px}
+  .pmode b{font-size:8.5px}
   .rank-chip{min-width:46px;height:44px}
   .rank-chip>span{font-size:16px}
+  .head-img{width:40px;height:40px}
+  .pname{font-size:16px}
+  .psub{font-size:11px}
   .tierrow{grid-template-columns:96px 1fr}
   .tier-letter{font-size:24px}
   .tier-letter.small{font-size:15px}
@@ -496,6 +502,11 @@ footer{border-top:1px solid var(--line);padding:26px 0}
   .pill-live{padding:8px 12px;font-size:10px}
   #toasts{right:12px;bottom:74px}
 }
+@media(max-width:400px){
+  .pmodes{gap:5px}
+  .pmode .micon{width:24px;height:24px}
+  .pmode b{font-size:8px}
+}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
   html{scroll-behavior:auto}
@@ -505,8 +516,13 @@ footer{border-top:1px solid var(--line);padding:26px 0}
 </head>
 <body>
 
-<!-- ============ ICONS ============ -->
+<!-- ============ ICONS + SHARED GRADIENT ============ -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="hexgrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8a1d12"/><stop offset=".45" stop-color="#c2452a"/><stop offset="1" stop-color="#f6b57e"/>
+    </linearGradient>
+  </defs>
   <symbol id="i-sparkle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 15.5 3.8 13.9a.5.5 0 0 1 0-1L9.9 11.4A2 2 0 0 0 11.4 10l1.6-6.2a.5.5 0 0 1 1 0L15.5 10a2 2 0 0 0 1.4 1.4l6.2 1.6a.5.5 0 0 1 0 1L16.9 15.5a2 2 0 0 0-1.4 1.5l-1.6 6.1a.5.5 0 0 1-1 0l-1.5-6.1a2 2 0 0 0-1.5-1.5z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></g></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></g></symbol>
   <symbol id="i-ext" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4 10 14"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></g></symbol>
@@ -535,11 +551,6 @@ footer{border-top:1px solid var(--line);padding:26px 0}
   <symbol id="i-card" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5.5" width="17" height="13" rx="3"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></g></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g></symbol>
   <symbol id="i-discord" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><path d="M20.317 4.369a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></g></symbol>
-  <symbol id="i-sword" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/></g></symbol>
-  <symbol id="i-mace" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 7.5-7.5"/><circle cx="14" cy="9" r="4.5"/><path d="M14 2.5V4M20.5 9H19M18.6 4.4l-1.1 1.1"/></g></symbol>
-  <symbol id="i-chest" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18M12 11v3"/></g></symbol>
-  <symbol id="i-cart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18l-2 9H5L3 7z"/><circle cx="8" cy="19.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="16" cy="19.5" r="1.4" fill="currentColor" stroke="none"/></g></symbol>
-  <symbol id="i-apple" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5C8.5 5.5 5 8 5 12c0 4.2 3.4 8 7 8s7-3.8 7-8c0-4-3.5-6.5-7-4.5z"/><path d="M12 7.5c0-2.2 1.2-3.7 3-4.5"/></g></symbol>
 </svg>
 
 <!-- ============ HEADER ============ -->
@@ -814,22 +825,17 @@ footer{border-top:1px solid var(--line);padding:26px 0}
 
 <script>
 'use strict';
-/* =====================================================
-   ADMIN PASSWORD — ONLY used as fallback when the file is
-   opened with no backend (double-clicked locally).
-   On Vercel the real password is the ADMIN_PASSWORD env var.
-===================================================== */
-const ADMIN_PASSWORD = 'doom';
+const ADMIN_PASSWORD = 'doom'; /* fallback only — production uses the ADMIN_PASSWORD env var */
 
 const LS_KEY = 'doomsmp.board.v5';
 const TIERS = ['S+','S','A','B','C','D','E','F','N/A'];
 const TIER_CLS = {'S+':'tc-splus','S':'tc-s','A':'tc-a','B':'tc-b','C':'tc-c','D':'tc-d','E':'tc-e','F':'tc-f','N/A':'tc-na'};
 const MODES = [
-  {k:'sword', label:'SWORD', full:'Sword', ic:'i-sword'},
-  {k:'mace',  label:'MACE',  full:'Mace',  ic:'i-mace'},
-  {k:'smp',   label:'SMP',   full:'SMP',   ic:'i-chest'},
-  {k:'cart',  label:'CART',  full:'Cart',  ic:'i-cart'},
-  {k:'uhc',   label:'UHC',   full:'UHC',   ic:'i-apple'}
+  {k:'sword', label:'SWORD', full:'Sword'},
+  {k:'mace',  label:'MACE',  full:'Mace'},
+  {k:'smp',   label:'SMP',   full:'SMP'},
+  {k:'cart',  label:'CART',  full:'Cart'},
+  {k:'uhc',   label:'UHC',   full:'UHC'}
 ];
 const REGIONS = ['','NA','SA','EU','AS','OCE','AF'];
 const DEFAULTS = {
@@ -840,6 +846,104 @@ const DEFAULTS = {
     results:[{sa:'',sb:''},{sa:'',sb:''},{sa:'',sb:''},{sa:'',sb:''},{sa:'',sb:''},{sa:'',sb:''},{sa:'',sb:''}] },
   updated: Date.now()
 };
+
+/* =====================================================
+   KIT ICONS — unified pixel-art set in one hex frame
+   sword→Sword · mace→Mace · pearl→SMP · tnt-cart→Cart · heart→UHC
+===================================================== */
+const ICON_PALETTE = {
+  sword:{t:'#9CFFE9',s:'#40DCC4',d:'#1FA18C',g:'#0E5A50',h:'#9A6430'},
+  mace:{b:'#D4D9DF',c:'#A6ADB7',d:'#6E7681',w:'#EDF0F4',p:'#8B7FB0'},
+  smp:{s:'#2FBFA0',t:'#A8FFE9',d:'#136B58'},
+  cart:{h:'#E07B39',w:'#F0F0F0',T:'#C62828',r:'#B3271E',W:'#D9DDE2',g:'#6E737C',G:'#AAAFB8',k:'#42464E'},
+  uhc:{r:'#E5342E',l:'#FF8A8A',d:'#A51212'}
+};
+const ICON_MAPS = {
+  sword:[
+    '.........tt.',
+    '........tts.',
+    '.......ttsd.',
+    '......ttsd..',
+    '.....ttsd...',
+    '..g.ttsd....',
+    '.gdgtsd.....',
+    '..gg........',
+    '..hh........',
+    '.hh.........',
+    'hh..........',
+    '............'
+  ],
+  mace:[
+    '....bccdd...',
+    '...wbbccdd..',
+    '..wwbbccddd.',
+    '..wbbbccddd.',
+    '.wwbbbccdddd',
+    '.wbbbccdddd.',
+    '..wbbccdddd.',
+    '...wccddd...',
+    '....wpcd....',
+    '.....pp.....',
+    '....pp......',
+    '...pp.......'
+  ],
+  smp:[
+    '...ssssss...',
+    '..ssssssss..',
+    '.ttssssssss.',
+    '.ttsssssssd.',
+    'sttssssssdd.',
+    'sstdssssssdd',
+    'ssddssssssdd',
+    'sssddsssssdd',
+    'ssssssssssdd',
+    '.sssssssssd.',
+    '.dssssssddd.',
+    '..ddssdddd..'
+  ],
+  cart:[
+    '..hhhhhhhh..',
+    '..hhhhhhhh..',
+    '..wwwwwwww..',
+    '..wTwwTwwTw.',
+    '..wwwwwwww..',
+    '..rrrrrrrr..',
+    '..rrrrrrrr..',
+    '.WWWWWWWWWW.',
+    '.gGGGGGGGGg.',
+    '.gGGGGGGGGg.',
+    '..kk....kk..',
+    '............'
+  ],
+  uhc:[
+    '............',
+    '..rr....rr..',
+    '.rlrr..rrrr.',
+    '.rrrrrrrrrr.',
+    '.rlrrrrrrrd.',
+    '..rrrrrrdd..',
+    '..rrrrrrdd..',
+    '...rrrrdd...',
+    '....rrdd....',
+    '.....rr.....',
+    '............',
+    '............'
+  ]
+};
+function modeIcon(key, cls){
+  const pal = ICON_PALETTE[key] || {}, rows = ICON_MAPS[key] || [];
+  let rects = '';
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++){
+      const c = pal[row[x]];
+      if (c) rects += '<rect x="' + (8 + x*4) + '" y="' + (8 + y*4) + '" width="4" height="4" fill="' + c + '"/>';
+    }
+  });
+  return '<svg class="micon ' + (cls||'') + '" viewBox="0 0 64 64" aria-hidden="true">' +
+    '<path d="M15 3 L49 3 L61 15 L61 49 L49 61 L15 61 L3 49 L3 15 Z" fill="url(#hexgrad)"/>' +
+    '<path d="M18 8 L46 8 L56 18 L56 46 L46 56 L18 56 L8 46 L8 18 Z" fill="#0C0C0E" stroke="#000" stroke-opacity=".55" stroke-width="1.5"/>' +
+    rects + '</svg>';
+}
 
 /* ---------- SAFE STORAGE ---------- */
 const mem = Object.create(null);
@@ -908,9 +1012,7 @@ function toast(msg, isErr){
   setTimeout(()=>{ t.classList.remove('on'); setTimeout(()=>t.remove(), 320); }, isErr?5200:3200);
 }
 
-/* =====================================================
-   SKIN RESOLUTION — real Mojang lookup (admin)
-===================================================== */
+/* ---------- Mojang lookup (admin + tier test) ---------- */
 const skinCache = Object.create(null);
 function fetchJSON(url, ms){
   const ctl = ('AbortController' in window) ? new AbortController() : null;
@@ -945,17 +1047,11 @@ function matchQ(p, i){
   if(q.startsWith('#')) return String(i+1) === q.slice(1);
   return p.name.toLowerCase().includes(q) || p.tier.toLowerCase().includes(q);
 }
-function rankChip(i, p){
-  const tc = TIER_CLS[p.tier] || 'tc-na';
-  return '<div class="rank-chip ' + tc + '"><span>#' + (i+1) + '</span></div>';
-}
 function modeStacks(p){
   return '<div class="pmodes">' + MODES.map(m => {
     const t = (p.modes && p.modes[m.k]) || 'N/A';
-    const cls = t === 'N/A' ? 'isna' : TIER_CLS[t];
     return '<span class="pmode" title="' + esc(m.full) + '">' +
-             '<span class="pic"><svg class="ic"><use href="#' + m.ic + '"/></svg></span>' +
-             '<b class="' + cls + '">' + t + '</b>' +
+             modeIcon(m.k) + '<b class="' + TIER_CLS[t] + '">' + t + '</b>' +
            '</span>';
   }).join('') + '</div>';
 }
@@ -971,7 +1067,7 @@ function renderBoard(){
   } else {
     $('#overallRows').innerHTML = shown.map(({p,i}) =>
       '<div class="prow" role="button" tabindex="0" data-player="' + i + '" title="View full profile">' +
-        rankChip(i, p) +
+        '<div class="rank-chip ' + (TIER_CLS[p.tier]||'tc-na') + '"><span>#' + (i+1) + '</span></div>' +
         skinImg(p.name, p.uuid, 64, 'head-img') +
         '<div class="pinfo">' +
           '<div class="pname">' + (esc(p.name) || 'Unnamed') + '</div>' +
@@ -1001,7 +1097,7 @@ function renderBoard(){
 }
 
 /* =====================================================
-   BRACKET TREE — real tournament layout, auto-advance
+   BRACKET TREE
 ===================================================== */
 function bracketModel(b){
   const size = b.size || 8;
@@ -1040,7 +1136,7 @@ function renderBracket(){
       const idx = M.base[r] + i;
       const a = M.name(r,i,0), bb = M.name(r,i,1), res = M.get(idx);
       const w = M.winner(idx);
-      const row = (n, sc, side) => {
+      const row = (n, sc) => {
         const tbd = !n;
         const cls = w ? (w.name && w.name === n ? 'win' : (n ? 'lose' : '')) : '';
         return '<div class="bm-row ' + (tbd?'tbd':'') + ' ' + cls + '">' +
@@ -1064,8 +1160,8 @@ function renderBracket(){
   requestAnimationFrame(drawBracketLines);
 }
 function drawBracketLines(){
-  const wrap = $('#bracketEl'), svg = $('#bsvg');
-  const old = $('#bracketList svg'); if(old) old.remove();
+  const wrap = $('#bracketEl');
+  const old = $('#bracketList svg#bsvg'); if(old) old.remove();
   if(!wrap) return;
   const svgNS = 'http://www.w3.org/2000/svg';
   const sv = document.createElementNS(svgNS,'svg');
@@ -1085,7 +1181,6 @@ function drawBracketLines(){
       sv.appendChild(p);
     }
   }
-  /* final → champion */
   const F = pos((M.counts.length-1)+':0'), C = pos('champ');
   if(F && C){
     const p = document.createElementNS(svgNS,'path');
@@ -1094,7 +1189,6 @@ function drawBracketLines(){
     sv.appendChild(p);
   }
   wrap.appendChild(sv);
-  /* hover: light the road to the title */
   wrap.querySelectorAll('.bmatch').forEach(m => {
     const [r,i] = m.dataset.c.split(':').map(Number);
     m.addEventListener('mouseenter', () => {
@@ -1137,7 +1231,6 @@ function moveSeg(){
 }));
  $('#boardSearch').addEventListener('input', e => { query = e.target.value; try{ renderBoard(); }catch(err){} });
 
-/* copy server IP */
  $('#copyIp').addEventListener('click', async () => {
   try{ await navigator.clipboard.writeText(SERVER_IP); }
   catch(e){
@@ -1149,7 +1242,7 @@ function moveSeg(){
   toast('Server IP copied — doomevents.net');
 });
 
-/* ---------- player profile modal ---------- */
+/* ---------- player profile ---------- */
 const pfOverlay = $('#pfOverlay');
 function openProfile(i){
   const p = state.players[i]; if(!p) return;
@@ -1168,6 +1261,7 @@ function openProfile(i){
       MODES.map(m => {
         const t = (p.modes && p.modes[m.k]) || 'N/A';
         return '<div class="pf-mode"><span class="lb">' + m.full.toUpperCase() + '</span>' +
+               modeIcon(m.k) +
                '<span class="tbadge ' + TIER_CLS[t] + '">' + t + '</span></div>';
       }).join('') +
     '</div>' +
@@ -1200,22 +1294,23 @@ document.addEventListener('keydown', e => {
   let ignState = {checked:false, found:false};
   let timer, tok = 0;
   const skinEl = $('#ttSkin');
-  skinEl.innerHTML = '<img width="42" height="42" src="' + SKIN_PLACEHOLDER + '" alt="" style="border-radius:10px;image-rendering:pixelated;border:1px solid var(--line2)">';
+  const phImg = '<img width="42" height="42" src="' + SKIN_PLACEHOLDER + '" alt="" style="border-radius:10px;image-rendering:pixelated;border:1px solid var(--line2)">';
+  skinEl.innerHTML = phImg;
   $('#ttIgn').addEventListener('input', e => {
     clearTimeout(timer);
     const name = e.target.value.trim();
     const st = $('#ttIgnStatus');
-    if(!name){ ignState = {checked:false, found:false}; st.textContent=''; st.className='tt-status';
-      skinEl.innerHTML = '<img width="42" height="42" src="' + SKIN_PLACEHOLDER + '" alt="" style="border-radius:10px;image-rendering:pixelated;border:1px solid var(--line2)">'; return; }
+    if(!name){ ignState = {checked:false, found:false}; st.textContent=''; st.className='tt-status'; skinEl.innerHTML = phImg; return; }
     st.textContent = '· Checking account…'; st.className = 'tt-status';
     timer = setTimeout(async () => {
       const my = ++tok;
-      const res = ('test' === 'test') && (name.toLowerCase() in skinCache) ? skinCache[name.toLowerCase()] : await resolveSkin(name);
+      const key = name.toLowerCase();
+      const res = key in skinCache ? skinCache[key] : await resolveSkin(name);
       if(my !== tok) return;
-      skinCache[name.toLowerCase()] = res;
+      skinCache[key] = res;
       ignState = {checked:true, found:res.found, uuid:res.uuid};
-      const srcs = skinSources(name, res.found ? res.uuid : null, 84);
-      skinEl.innerHTML = '<img width="42" height="42" data-srcs="' + srcs.join('|') + '" src="' + srcs[0] + '" alt="" style="border-radius:10px;image-rendering:pixelated;border:1px solid var(--line2)">';
+      const srcs = skinChain(name, res.found ? res.uuid : null, 84);
+      skinEl.innerHTML = '<img width="42" height="42" referrerpolicy="no-referrer" data-srcs="' + srcs.join('|') + '" src="' + srcs[0] + '" alt="" style="border-radius:10px;image-rendering:pixelated;border:1px solid var(--line2)">';
       if(res.found){ st.textContent = '· Account found — ready to send'; st.className = 'tt-status ok'; }
       else { st.textContent = '· No premium account with this IGN (you can still send)'; st.className = 'tt-status no'; }
     }, 500);
@@ -1237,10 +1332,8 @@ document.addEventListener('keydown', e => {
     try{
       const r = await fetch('/api/request', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
       if(r.ok) ok = true;
-      if(r.status === 404) ok = false;
     }catch(err){}
     if(!ok){
-      /* fallback: direct webhook (used when no backend, e.g. local preview) */
       try{
         const r = await fetch(TIER_TEST_WEBHOOK_FALLBACK, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
           username: 'Tier Test Requests',
@@ -1265,7 +1358,7 @@ document.addEventListener('keydown', e => {
       cooldown = Date.now() + 30000;
       $('#ttForm').reset(); sel.value='N/A'; req.value='B';
       $('#ttIgnStatus').textContent=''; $('#ttIgnStatus').className='tt-status';
-      skinEl.innerHTML = '<img width="42" height="42" src="' + SKIN_PLACEHOLDER + '" alt="" style="border-radius:10px;image-rendering:pixelated;border:1px solid var(--line2)">';
+      skinEl.innerHTML = phImg;
       toast('Request sent — watch Discord for a ping.');
     } else {
       toast('Could not send the request. Try again in a bit.', true);
@@ -1373,7 +1466,7 @@ async function checkSkin(i){
   skinCache[key] = res;
   if(res.found){
     draft.players[i].uuid = res.uuid; markDirty();
-    const srcs = skinSources(name, res.uuid, 72);
+    const srcs = skinChain(name, res.uuid, 72);
     img.setAttribute('data-srcs', srcs.join('|')); img.src = srcs[0];
     st.className = 'st ok';
     st.innerHTML = '· Skin found — <a href="' + namemc(name) + '" target="_blank" rel="noopener">view on NameMC ↗</a>';
@@ -1402,7 +1495,7 @@ function renderAdmPlayers(){
       '</div>' +
       '<div class="ap-modes">' +
         MODES.map(m =>
-          '<div class="sel-wrap"><label title="' + esc(m.full) + '">' + m.label + '</label>' +
+          '<div class="sel-wrap"><label>' + m.label + '</label>' +
           '<select class="f-input" data-f="mode-' + m.k + '" data-i="' + i + '">' + tierOpts((p.modes&&p.modes[m.k])||'N/A') + '</select></div>'
         ).join('') +
       '</div>' +
@@ -1508,7 +1601,7 @@ function updateWinnerHints(){
   }
 });
 
-/* ---------- save (errors now surface!) ---------- */
+/* ---------- save ---------- */
  $('#btnSave').addEventListener('click', async () => {
   const btn = $('#btnSave');
   btn.disabled = true;
