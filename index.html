@@ -16,7 +16,8 @@ document.documentElement.classList.add('js');
 const SERVER_IP = 'doomevents.net';
 const DISCORD_INVITE = 'https://discord.gg/AUQezfCAY';
 const TIER_TEST_WEBHOOK_FALLBACK = 'https://discord.com/api/webhooks/1550870485842141264/dZun9Usn824NgJ8jy4uUD-TngUhzU7h820p9EUmY52sy6p6kLesBwGdWgiTfuYRMnI1G';
-/* ===== SKINS — own /api/skin proxy first, external services as fallback ===== */
+
+/* ===== SKINS — same-origin proxy first, externals as fallback ===== */
 const SKIN_PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><rect width='8' height='8' fill='#3a3a41'/><rect x='1' y='1' width='6' height='6' fill='#54545e'/><rect x='2' y='3' width='1' height='1' fill='#202024'/><rect x='5' y='3' width='1' height='1' fill='#202024'/><rect x='3' y='5' width='2' height='1' fill='#202024'/></svg>");
 function skinChain(name, uuid, size){
@@ -34,15 +35,40 @@ function skinImg(name, uuid, size, cls){
   const srcs = skinChain(name, uuid, size);
   return '<img class="' + (cls||'') + '" referrerpolicy="no-referrer" data-srcs="' + srcs.join('|') + '" src="' + srcs[0] + '" alt="" loading="lazy">';
 }
-/* global fallback walker: proxy → externals → placeholder */
+/* global fallback walkers */
 document.addEventListener('error', e => {
   const t = e.target;
-  if (!t || t.tagName !== 'IMG' || !t.dataset.srcs) return;
-  const rest = t.dataset.srcs.split('|');
-  rest.shift();
-  if (rest.length){ t.dataset.srcs = rest.join('|'); t.src = rest[0]; }
-  else { t.dataset.srcs = ''; t.src = SKIN_PLACEHOLDER; }
+  if (!t || t.tagName !== 'IMG') return;
+  if (t.dataset.srcs){                       /* skin chain */
+    const rest = t.dataset.srcs.split('|'); rest.shift();
+    if (rest.length){ t.dataset.srcs = rest.join('|'); t.src = rest[0]; }
+    else { t.dataset.srcs = ''; t.src = SKIN_PLACEHOLDER; }
+  }
 }, true);
+
+/* ===== KIT ICONS — your PNGs from /icons; cart gets a hex frame drawn
+   around it; anything missing falls back to a hex tile with the mode letter ===== */
+function modeIconFail(img){
+  const k = img.dataset.mode || '';
+  const letters = {sword:'S', mace:'M', smp:'SMP', cart:'C', uhc:'U'};
+  const letter = letters[k] || '?';
+  const fs = letter.length > 2 ? 15 : 26;
+  const target = (img.parentElement && img.parentElement.classList.contains('hexcart')) ? img.parentElement : img;
+  const wrap = document.createElement('span');
+  wrap.className = 'hexicon';
+  wrap.setAttribute('role','img');
+  wrap.setAttribute('aria-label', k);
+  wrap.innerHTML =
+    '<svg viewBox="0 0 64 64" style="width:100%;height:100%">' +
+      '<defs><linearGradient id="hgf' + k + '" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="#8a1d12"/><stop offset=".45" stop-color="#c2452a"/><stop offset="1" stop-color="#f6b57e"/>' +
+      '</linearGradient></defs>' +
+      '<path d="M15 3 L49 3 L61 15 L61 49 L49 61 L15 61 L3 49 L3 15 Z" fill="url(#hgf' + k + ')"/>' +
+      '<path d="M18 8 L46 8 L56 18 L56 46 L46 56 L18 56 L8 46 L8 18 Z" fill="#0C0C0E" stroke="#000" stroke-opacity=".55" stroke-width="1.5"/>' +
+      '<text x="32" y="41" text-anchor="middle" dominant-baseline="middle" font-family="Nunito, Arial, sans-serif" font-weight="900" font-size="' + fs + '" fill="#aeb4bc">' + letter + '</text>' +
+    '</svg>';
+  target.replaceWith(wrap);
+}
 </script>
 <style>
 /* ================= TOKENS ================= */
@@ -182,31 +208,34 @@ body.menu-open{overflow:hidden}
 .search input:focus{outline:none;border-color:rgba(251,59,92,.55);box-shadow:0 0 0 3px rgba(251,59,92,.12)}
 .board-meta{display:flex;align-items:center;gap:9px;margin-top:14px;font:800 11px var(--fd);letter-spacing:.2em;color:var(--dim)}
 .board-meta .ic{width:15px;height:15px}
-.thead{display:grid;grid-template-columns:64px 1fr auto;gap:14px;padding:12px 22px;border-top:1px solid var(--line);
+.thead{display:flex;justify-content:space-between;gap:14px;padding:12px 20px;border-top:1px solid var(--line);
   font:800 10.5px var(--fd);letter-spacing:.24em;color:var(--dim)}
 
-/* ===== Overall player card (MCTiers-style) ===== */
-.prow{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 22px;border-top:1px solid var(--line);
+/* ===== Overall player card — single flex row, icons never wrap ===== */
+.prow{display:flex;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid var(--line);
   transition:background .2s;cursor:pointer}
 .prow:hover{background:rgba(244,244,245,.03)}
-.rank-chip{transform:skewX(-10deg);border-radius:7px;min-width:54px;height:52px;
+.rank-chip{flex:none;transform:skewX(-10deg);border-radius:7px;min-width:54px;height:52px;
   display:grid;place-items:center;background:var(--tbg,#3f3f46);box-shadow:0 6px 16px -6px rgba(0,0,0,.6)}
 .rank-chip>span{transform:skewX(10deg);font:1000 19px var(--fd);color:var(--tct,#fff)}
-.head-img{width:46px;height:46px;border-radius:10px;image-rendering:pixelated;border:1px solid var(--line2)}
-.pinfo{min-width:0}
+.head-img{flex:none;width:46px;height:46px;border-radius:10px;image-rendering:pixelated;border:1px solid var(--line2)}
+.pinfo{flex:1;min-width:0}
 .pname{font:900 19px var(--fd);letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .2s}
 .prow:hover .pname{color:var(--rose)}
 .psub{display:flex;align-items:center;gap:7px;margin-top:2px;font:700 12.5px var(--fb);color:var(--mut);white-space:nowrap;overflow:hidden}
 .psub .ic{width:14px;height:14px;color:var(--gold);flex:none}
-.pside{display:flex;align-items:center;gap:16px}
-.region{min-width:40px;height:32px;padding:0 9px;border-radius:8px;display:grid;place-items:center;
+.pside{flex:none;display:flex;align-items:center;gap:16px}
+.region{flex:none;min-width:40px;height:32px;padding:0 9px;border-radius:8px;display:grid;place-items:center;
   font:900 12px var(--fd);letter-spacing:.04em;background:rgba(251,59,92,.14);border:1px solid rgba(251,59,92,.4);color:#ff8095}
-.pmodes{display:flex;gap:12px}
-.pmode{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:40px}
-.pmode .micon{width:38px;height:38px;transition:transform .15s}
-.prow:hover .pmode .micon{transform:translateY(-2px)}
+.pmodes{display:flex;align-items:center;gap:12px}
+.pmode{display:flex;flex-direction:column;align-items:center;gap:5px}
+.micon{width:40px;height:40px;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+.hexicon{width:40px;height:40px;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));display:inline-block}
 .pmode b{font:900 10.5px var(--fd);color:var(--tc,#71717a);letter-spacing:.04em}
-.micon{filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+/* Cart: your frameless TNT png + hex frame drawn around it */
+.hexcart{position:relative;width:40px;height:40px;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+.hexcart svg{position:absolute;inset:0;width:100%;height:100%}
+.hexcart img{position:absolute;inset:16%;width:68%;height:68%;object-fit:contain}
 .board-empty{padding:44px 22px;text-align:center;color:var(--dim);font:600 14px var(--fb);border-top:1px solid var(--line)}
 .board-foot{margin-top:18px;color:var(--dim);font-size:14px}
 .board-foot b{color:var(--mut);font-weight:600}
@@ -224,7 +253,7 @@ body.menu-open{overflow:hidden}
 .tier-letter{position:relative;font:1000 30px/1 var(--fd);color:var(--tc)}
 .tier-letter.small{font-size:19px}
 .tier-cap{position:relative;font:600 12px var(--fb);color:var(--dim)}
-.tierbody{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:18px 22px;min-height:104px}
+.tierbody{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:18px 20px;min-height:104px}
 .tchip-card{display:inline-flex;align-items:center;gap:12px;border:1px solid var(--line2);background:#17171b;
   border-radius:16px;padding:9px 16px 9px 9px;cursor:pointer;transition:transform .15s,border-color .2s}
 .tchip-card:hover{transform:translateY(-2px);border-color:rgba(251,59,92,.5)}
@@ -391,9 +420,9 @@ footer{border-top:1px solid var(--line);padding:26px 0}
 .pf-sec{font:800 11px var(--fd);letter-spacing:.24em;color:var(--dim);margin:22px 0 12px;display:flex;align-items:center;gap:10px}
 .pf-sec::after{content:"";flex:1;height:1px;background:var(--line)}
 .pf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-.pf-mode{border:1px solid var(--line);background:var(--card2);border-radius:14px;padding:14px 15px;display:flex;flex-direction:column;gap:9px}
+.pf-mode{border:1px solid var(--line);background:var(--card2);border-radius:14px;padding:14px 15px;display:flex;flex-direction:column;gap:9px;align-items:flex-start}
 .pf-mode .lb{font:800 10px var(--fd);letter-spacing:.18em;color:var(--dim)}
-.pf-mode .micon{width:36px;height:36px}
+.pf-mode .micon,.pf-mode .hexicon,.pf-mode .hexcart{width:36px;height:36px}
 .pf-mode .tbadge{align-self:flex-start;min-width:48px;height:34px;font-size:14px;border-radius:10px}
 .pf-actions{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
 .tbadge{display:inline-grid;place-items:center;min-width:62px;height:42px;padding:0 14px;border-radius:12px;
@@ -478,20 +507,20 @@ footer{border-top:1px solid var(--line);padding:26px 0}
   .seg-btn{justify-content:center}
 }
 @media(max-width:640px){
-  .thead{grid-template-columns:64px 1fr auto;padding-inline:16px}
+  .thead{padding-inline:14px}
   .thead span:last-child{font-size:9px}
-  .prow{grid-template-columns:64px minmax(0,1fr) auto;padding-inline:16px;gap:12px}
-  .pside{gap:10px}
+  .prow{gap:10px;padding:12px 14px}
+  .pside{gap:8px}
   .region{display:none}
   .pmodes{gap:7px}
-  .pmode{min-width:30px}
-  .pmode .micon{width:28px;height:28px}
-  .pmode b{font-size:8.5px}
-  .rank-chip{min-width:46px;height:44px}
-  .rank-chip>span{font-size:16px}
-  .head-img{width:40px;height:40px}
-  .pname{font-size:16px}
-  .psub{font-size:11px}
+  .micon,.hexicon,.hexcart{width:27px;height:27px}
+  .pmode{gap:3px}
+  .pmode b{font-size:8px}
+  .rank-chip{min-width:44px;height:46px}
+  .rank-chip>span{font-size:15px}
+  .head-img{width:38px;height:38px}
+  .pname{font-size:15.5px}
+  .psub{font-size:10.5px}
   .tierrow{grid-template-columns:96px 1fr}
   .tier-letter{font-size:24px}
   .tier-letter.small{font-size:15px}
@@ -502,11 +531,6 @@ footer{border-top:1px solid var(--line);padding:26px 0}
   .pill-live{padding:8px 12px;font-size:10px}
   #toasts{right:12px;bottom:74px}
 }
-@media(max-width:400px){
-  .pmodes{gap:5px}
-  .pmode .micon{width:24px;height:24px}
-  .pmode b{font-size:8px}
-}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
   html{scroll-behavior:auto}
@@ -516,7 +540,7 @@ footer{border-top:1px solid var(--line);padding:26px 0}
 </head>
 <body>
 
-<!-- ============ ICONS + SHARED GRADIENT ============ -->
+<!-- ============ ICONS + SHARED GRADIENT (used by cart frame + fallbacks) ============ -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <linearGradient id="hexgrad" x1="0" y1="0" x2="1" y2="1">
@@ -831,11 +855,11 @@ const LS_KEY = 'doomsmp.board.v5';
 const TIERS = ['S+','S','A','B','C','D','E','F','N/A'];
 const TIER_CLS = {'S+':'tc-splus','S':'tc-s','A':'tc-a','B':'tc-b','C':'tc-c','D':'tc-d','E':'tc-e','F':'tc-f','N/A':'tc-na'};
 const MODES = [
-  {k:'sword', label:'SWORD', full:'Sword'},
-  {k:'mace',  label:'MACE',  full:'Mace'},
-  {k:'smp',   label:'SMP',   full:'SMP'},
-  {k:'cart',  label:'CART',  full:'Cart'},
-  {k:'uhc',   label:'UHC',   full:'UHC'}
+  {k:'sword', label:'SWORD', full:'Sword', img:'/icons/sword.png'},
+  {k:'mace',  label:'MACE',  full:'Mace',  img:'/icons/mace.png'},
+  {k:'smp',   label:'SMP',   full:'SMP',   img:'/icons/smp.png'},
+  {k:'cart',  label:'CART',  full:'Cart',  img:'/icons/cart.png'},
+  {k:'uhc',   label:'UHC',   full:'UHC',   img:'/icons/uhc.png'}
 ];
 const REGIONS = ['','NA','SA','EU','AS','OCE','AF'];
 const DEFAULTS = {
@@ -846,104 +870,6 @@ const DEFAULTS = {
     results:[{sa:'',sb:''},{sa:'',sb:''},{sa:'',sb:''},{sa:'',sb:''},{sa:'',sb:''},{sa:'',sb:''},{sa:'',sb:''}] },
   updated: Date.now()
 };
-
-/* =====================================================
-   KIT ICONS — unified pixel-art set in one hex frame
-   sword→Sword · mace→Mace · pearl→SMP · tnt-cart→Cart · heart→UHC
-===================================================== */
-const ICON_PALETTE = {
-  sword:{t:'#9CFFE9',s:'#40DCC4',d:'#1FA18C',g:'#0E5A50',h:'#9A6430'},
-  mace:{b:'#D4D9DF',c:'#A6ADB7',d:'#6E7681',w:'#EDF0F4',p:'#8B7FB0'},
-  smp:{s:'#2FBFA0',t:'#A8FFE9',d:'#136B58'},
-  cart:{h:'#E07B39',w:'#F0F0F0',T:'#C62828',r:'#B3271E',W:'#D9DDE2',g:'#6E737C',G:'#AAAFB8',k:'#42464E'},
-  uhc:{r:'#E5342E',l:'#FF8A8A',d:'#A51212'}
-};
-const ICON_MAPS = {
-  sword:[
-    '.........tt.',
-    '........tts.',
-    '.......ttsd.',
-    '......ttsd..',
-    '.....ttsd...',
-    '..g.ttsd....',
-    '.gdgtsd.....',
-    '..gg........',
-    '..hh........',
-    '.hh.........',
-    'hh..........',
-    '............'
-  ],
-  mace:[
-    '....bccdd...',
-    '...wbbccdd..',
-    '..wwbbccddd.',
-    '..wbbbccddd.',
-    '.wwbbbccdddd',
-    '.wbbbccdddd.',
-    '..wbbccdddd.',
-    '...wccddd...',
-    '....wpcd....',
-    '.....pp.....',
-    '....pp......',
-    '...pp.......'
-  ],
-  smp:[
-    '...ssssss...',
-    '..ssssssss..',
-    '.ttssssssss.',
-    '.ttsssssssd.',
-    'sttssssssdd.',
-    'sstdssssssdd',
-    'ssddssssssdd',
-    'sssddsssssdd',
-    'ssssssssssdd',
-    '.sssssssssd.',
-    '.dssssssddd.',
-    '..ddssdddd..'
-  ],
-  cart:[
-    '..hhhhhhhh..',
-    '..hhhhhhhh..',
-    '..wwwwwwww..',
-    '..wTwwTwwTw.',
-    '..wwwwwwww..',
-    '..rrrrrrrr..',
-    '..rrrrrrrr..',
-    '.WWWWWWWWWW.',
-    '.gGGGGGGGGg.',
-    '.gGGGGGGGGg.',
-    '..kk....kk..',
-    '............'
-  ],
-  uhc:[
-    '............',
-    '..rr....rr..',
-    '.rlrr..rrrr.',
-    '.rrrrrrrrrr.',
-    '.rlrrrrrrrd.',
-    '..rrrrrrdd..',
-    '..rrrrrrdd..',
-    '...rrrrdd...',
-    '....rrdd....',
-    '.....rr.....',
-    '............',
-    '............'
-  ]
-};
-function modeIcon(key, cls){
-  const pal = ICON_PALETTE[key] || {}, rows = ICON_MAPS[key] || [];
-  let rects = '';
-  rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++){
-      const c = pal[row[x]];
-      if (c) rects += '<rect x="' + (8 + x*4) + '" y="' + (8 + y*4) + '" width="4" height="4" fill="' + c + '"/>';
-    }
-  });
-  return '<svg class="micon ' + (cls||'') + '" viewBox="0 0 64 64" aria-hidden="true">' +
-    '<path d="M15 3 L49 3 L61 15 L61 49 L49 61 L15 61 L3 49 L3 15 Z" fill="url(#hexgrad)"/>' +
-    '<path d="M18 8 L46 8 L56 18 L56 46 L46 56 L18 56 L8 46 L8 18 Z" fill="#0C0C0E" stroke="#000" stroke-opacity=".55" stroke-width="1.5"/>' +
-    rects + '</svg>';
-}
 
 /* ---------- SAFE STORAGE ---------- */
 const mem = Object.create(null);
@@ -1036,6 +962,24 @@ async function resolveSkin(name){
     if(d && d.uuid) return {found:true, uuid:d.uuid.replace(/-/g,''), username:d.username || name};
   }catch(e){}
   return {found:false};
+}
+
+/* =====================================================
+   KIT ICONS — your PNGs; cart gets the hex frame around it;
+   missing files fall back to hex letter tiles (head script)
+===================================================== */
+function modeIcon(key, cls){
+  const m = MODES.find(x => x.k === key) || MODES[0];
+  if (m.k === 'cart'){
+    return '<span class="hexcart" role="img" aria-label="Cart">' +
+      '<svg viewBox="0 0 64 64" aria-hidden="true">' +
+        '<path d="M15 3 L49 3 L61 15 L61 49 L49 61 L15 61 L3 49 L3 15 Z" fill="url(#hexgrad)"/>' +
+        '<path d="M18 8 L46 8 L56 18 L56 46 L46 56 L18 56 L8 46 L8 18 Z" fill="#0C0C0E" stroke="#000" stroke-opacity=".55" stroke-width="1.5"/>' +
+      '</svg>' +
+      '<img src="' + m.img + '" data-mode="cart" alt="" loading="lazy" onerror="modeIconFail(this)">' +
+    '</span>';
+  }
+  return '<img class="micon ' + (cls||'') + '" src="' + m.img + '" data-mode="' + m.k + '" alt="' + esc(m.full) + '" loading="lazy" onerror="modeIconFail(this)">';
 }
 
 /* =====================================================
@@ -1467,6 +1411,7 @@ async function checkSkin(i){
   if(res.found){
     draft.players[i].uuid = res.uuid; markDirty();
     const srcs = skinChain(name, res.uuid, 72);
+    img.removeAttribute('data-srcs');
     img.setAttribute('data-srcs', srcs.join('|')); img.src = srcs[0];
     st.className = 'st ok';
     st.innerHTML = '· Skin found — <a href="' + namemc(name) + '" target="_blank" rel="noopener">view on NameMC ↗</a>';
