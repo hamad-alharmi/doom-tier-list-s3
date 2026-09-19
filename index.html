@@ -266,17 +266,41 @@ body.menu-open{overflow:hidden}
 .tchip-card sup{font:800 10.5px var(--fd);color:var(--dim);margin-left:5px}
 .tnone{font:600 14px var(--fb);color:#565660}
 
-/* ================= KIT POOL ================= */
-.kits-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px;margin-top:40px}
-.kitcard{border:1px solid var(--line);background:var(--card);border-radius:var(--r-lg);padding:20px 18px;
-  display:flex;flex-direction:column;gap:10px;transition:transform .18s,border-color .2s}
-.kitcard:hover{transform:translateY(-3px);border-color:rgba(251,59,92,.45)}
-.kitcard img{width:56px;height:56px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
-.kitcard b{font:900 17px var(--fd)}
-.kitcard small{font:800 8.5px var(--fd);letter-spacing:.18em;color:var(--rose);text-transform:uppercase}
-.kitcard p{color:var(--mut);font-size:13px;flex:1}
-.kitcard span.dec{font:700 11.5px var(--fb);color:var(--dim);border-top:1px dashed var(--line);padding-top:9px}
-.kitcard span.dec em{font-style:normal;color:var(--gold)}
+/* <!-- ============ KIT POOL ============ --> */
+<section class="sec" id="kits" style="padding-top:0">
+  <div class="wrap">
+    <div class="eyebrow rv"><svg class="ic"><use href="#i-swords"/></svg>THE KIT POOL</div>
+    <h2 class="h2 rv" style="--d:.05s">Five kits. One ranking.</h2>
+    <p class="sub rv" style="--d:.1s">You need to be more than a one-kit wonder — the board measures the whole player, not their best button.</p>
+    <div class="kits-grid">
+      <div class="kitcard rv">
+        <img src="https://pvptiers.com/icons/modes/sword.webp" data-mode="sword" data-local="/icons/sword.png" alt="Sword kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
+        <b>Sword</b>
+        <p>Netherite blade, shield up, textbook dueling. Every other kit gets measured against this one.</p>
+      </div>
+      <div class="kitcard rv" style="--d:.05s">
+        <img src="https://pvptiers.com/icons/modes/mace.webp" data-mode="mace" data-local="/icons/mace.png" alt="Mace kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
+        <b>Mace</b>
+        <p>One smash decides everything. Climb, fall, delete — miss the boost and you're the one getting deleted.</p>
+      </div>
+      <div class="kitcard rv" style="--d:.1s">
+        <img src="https://pvptiers.com/icons/modes/smp.webp" data-mode="smp" data-local="/icons/smp.png" alt="SMP kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
+        <b>SMP</b>
+        <p>Home turf. No surprises and no excuses — the other fighter knows this kit just as well as you do.</p>
+      </div>
+      <div class="kitcard rv" style="--d:.15s">
+        <img src="https://subtiers.net/assets/minecart-20260909-v2.png" data-mode="cart" data-local="/icons/cart.png" alt="Cart kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)" style="width:56px;height:56px;object-fit:contain">
+        <b>Cart</b>
+        <p>Fast trades, scarce heals, zero room for drift — a kit that punishes hesitation on every exchange.</p>
+      </div>
+      <div class="kitcard rv" style="--d:.2s">
+        <img src="https://pvptiers.com/icons/modes/uhc.webp" data-mode="uhc" data-local="/icons/uhc.png" alt="UHC kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
+        <b>UHC</b>
+        <p>No totems, no natural regen. Every hit is permanent and one clean read usually ends it.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
 /* ================= BRACKET TREE ================= */
 .bracket-scroll{overflow-x:auto;margin-top:40px;padding:6px 2px 14px}
