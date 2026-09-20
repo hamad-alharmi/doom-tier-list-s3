@@ -57,7 +57,6 @@ function modeIconFail(img){
   const letters = {sword:'S', mace:'M', smp:'SMP', cart:'C', uhc:'U'};
   const letter = letters[k] || '?';
   const fs = letter.length > 2 ? 15 : 26;
-  const target = (img.parentElement && img.parentElement.classList.contains('hexcart')) ? img.parentElement : img;
   const wrap = document.createElement('span');
   wrap.className = 'hexicon';
   wrap.setAttribute('role','img');
@@ -71,7 +70,8 @@ function modeIconFail(img){
       '<path d="M18 8 L46 8 L56 18 L56 46 L46 56 L18 56 L8 46 L8 18 Z" fill="#0C0C0E" stroke="#000" stroke-opacity=".55" stroke-width="1.5"/>' +
       '<text x="32" y="41" text-anchor="middle" dominant-baseline="middle" font-family="Nunito, Arial, sans-serif" font-weight="900" font-size="' + fs + '" fill="#aeb4bc">' + letter + '</text>' +
     '</svg>';
-  target.replaceWith(wrap);
+  wrap.replaceWith(img.cloneNode ? img : wrap); /* never fires here; placeholder logic below */
+  img.replaceWith(wrap);
 }
 </script>
 <style>
@@ -233,13 +233,9 @@ body.menu-open{overflow:hidden}
   font:900 12px var(--fd);letter-spacing:.04em;background:rgba(251,59,92,.14);border:1px solid rgba(251,59,92,.4);color:#ff8095}
 .pmodes{display:flex;align-items:center;gap:12px}
 .pmode{display:flex;flex-direction:column;align-items:center;gap:5px}
-.micon{width:40px;height:40px;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+.micon{width:40px;height:40px;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));object-fit:contain}
 .hexicon{width:40px;height:40px;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));display:inline-block}
 .pmode b{font:900 10.5px var(--fd);color:var(--tc,#71717a);letter-spacing:.04em}
-/* Cart: subtiers minecart png + hex frame drawn around it */
-.hexcart{position:relative;width:40px;height:40px;flex:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
-.hexcart svg{position:absolute;inset:0;width:100%;height:100%}
-.hexcart img{position:absolute;inset:16%;width:68%;height:68%;object-fit:contain}
 .board-empty{padding:44px 22px;text-align:center;color:var(--dim);font:600 14px var(--fb);border-top:1px solid var(--line)}
 .board-foot{margin-top:18px;color:var(--dim);font-size:14px}
 .board-foot b{color:var(--mut);font-weight:600}
@@ -271,7 +267,7 @@ body.menu-open{overflow:hidden}
 .kitcard{border:1px solid var(--line);background:var(--card);border-radius:var(--r-lg);padding:20px 18px;
   display:flex;flex-direction:column;gap:10px;transition:transform .18s,border-color .2s}
 .kitcard:hover{transform:translateY(-3px);border-color:rgba(251,59,92,.45)}
-.kitcard img{width:56px;height:56px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+.kitcard img{width:56px;height:56px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));object-fit:contain}
 .kitcard b{font:900 17px var(--fd)}
 .kitcard p{color:var(--mut);font-size:13px}
 
@@ -427,7 +423,7 @@ footer{border-top:1px solid var(--line);padding:26px 0}
 .pf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .pf-mode{border:1px solid var(--line);background:var(--card2);border-radius:14px;padding:14px 15px;display:flex;flex-direction:column;gap:9px;align-items:flex-start}
 .pf-mode .lb{font:800 10px var(--fd);letter-spacing:.18em;color:var(--dim)}
-.pf-mode .micon,.pf-mode .hexicon,.pf-mode .hexcart{width:36px;height:36px}
+.pf-mode .micon,.pf-mode .hexicon{width:36px;height:36px}
 .pf-mode .tbadge{align-self:flex-start;min-width:48px;height:34px;font-size:14px;border-radius:10px}
 .pf-actions{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
 .tbadge{display:inline-grid;place-items:center;min-width:62px;height:42px;padding:0 14px;border-radius:12px;
@@ -520,7 +516,7 @@ footer{border-top:1px solid var(--line);padding:26px 0}
   .pside{gap:8px}
   .region{display:none}
   .pmodes{gap:7px}
-  .micon,.hexicon,.hexcart{width:27px;height:27px}
+  .micon,.hexicon{width:27px;height:27px}
   .pmode{gap:3px}
   .pmode b{font-size:8px}
   .rank-chip{min-width:44px;height:46px}
@@ -547,13 +543,8 @@ footer{border-top:1px solid var(--line);padding:26px 0}
 </head>
 <body>
 
-<!-- ============ ICONS + SHARED GRADIENT (hex frame for cart + fallbacks) ============ -->
+<!-- ============ UI ICONS ============ -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <linearGradient id="hexgrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8a1d12"/><stop offset=".45" stop-color="#c2452a"/><stop offset="1" stop-color="#f6b57e"/>
-    </linearGradient>
-  </defs>
   <symbol id="i-sparkle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 15.5 3.8 13.9a.5.5 0 0 1 0-1L9.9 11.4A2 2 0 0 0 11.4 10l1.6-6.2a.5.5 0 0 1 1 0L15.5 10a2 2 0 0 0 1.4 1.4l6.2 1.6a.5.5 0 0 1 0 1L16.9 15.5a2 2 0 0 0-1.4 1.5l-1.6 6.1a.5.5 0 0 1-1 0l-1.5-6.1a2 2 0 0 0-1.5-1.5z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></g></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></g></symbol>
   <symbol id="i-ext" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4 10 14"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></g></symbol>
@@ -672,27 +663,27 @@ footer{border-top:1px solid var(--line);padding:26px 0}
       <div class="kitcard rv">
         <img src="https://mctiers.com/tier_icons/sword.svg" data-mode="sword" data-local="/icons/sword.png" alt="Sword kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
         <b>Sword</b>
-        <p>Netherite blade, shield up, textbook dueling. Every other kit gets measured against this one.</p>
+        <p>Diamond sword, diamond armor. Pure swordfighting — crits, strafes, and hit selection. Nothing else.</p>
       </div>
       <div class="kitcard rv" style="--d:.05s">
         <img src="https://mctiers.com/tier_icons/mace.svg" data-mode="mace" data-local="/icons/mace.png" alt="Mace kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
         <b>Mace</b>
-        <p>One smash decides everything. Climb, fall, delete — miss the boost and you're the one getting deleted.</p>
+        <p>Wind charges and the 1.21 mace. Boost skyward and smash down — a clean fall hit can one-tap.</p>
       </div>
       <div class="kitcard rv" style="--d:.1s">
         <img src="https://mctiers.com/tier_icons/smp.svg" data-mode="smp" data-local="/icons/smp.png" alt="SMP kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
         <b>SMP</b>
-        <p>Home turf. No surprises and no excuses — the other fighter knows this kit just as well as you do.</p>
+        <p>Just your average SMP kit — the normal loadout you'd actually have on the server. No gimmicks, straight survival PvP.</p>
       </div>
       <div class="kitcard rv" style="--d:.15s">
-        <img src="https://subtiers.net/assets/minecart-20260909-v2.png" data-mode="cart" data-local="/icons/cart.png" alt="Cart kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)" style="width:56px;height:56px;object-fit:contain">
+        <img src="https://subtiers.net/assets/minecart-20260909-v2.png" data-mode="cart" data-local="/icons/cart.png" alt="Cart kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
         <b>Cart</b>
-        <p>Fast trades, scarce heals, zero room for drift — a kit that punishes hesitation on every exchange.</p>
+        <p>TNT minecart warfare — ignite TNT carts with a flame bow or flint &amp; steel, then shoot a crossbow through the fire to blow them up on your enemy.</p>
       </div>
       <div class="kitcard rv" style="--d:.2s">
         <img src="https://mctiers.com/tier_icons/uhc.svg" data-mode="uhc" data-local="/icons/uhc.png" alt="UHC kit" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">
         <b>UHC</b>
-        <p>No totems, no natural regen. Every hit is permanent and one clean read usually ends it.</p>
+        <p>No natural regen, early-game gear. Every heart lost is gone for good — the first clean hit usually takes it.</p>
       </div>
     </div>
   </div>
@@ -1012,21 +1003,12 @@ async function resolveSkin(name){
 }
 
 /* =====================================================
-   KIT ICONS — mctiers SVGs; cart keeps the subtiers png
-   inside the hex frame; failures fall back to /icons then
-   hex letter tiles
+   KIT ICONS — all five render as plain images now.
+   mctiers SVGs for sword/mace/smp/uhc, subtiers TNT cart
+   png as-is (no frame). Failures → /icons → hex tile.
 ===================================================== */
 function modeIcon(key, cls){
   const m = MODES.find(x => x.k === key) || MODES[0];
-  if (m.k === 'cart'){
-    return '<span class="hexcart" role="img" aria-label="Cart">' +
-      '<svg viewBox="0 0 64 64" aria-hidden="true">' +
-        '<path d="M15 3 L49 3 L61 15 L61 49 L49 61 L15 61 L3 49 L3 15 Z" fill="url(#hexgrad)"/>' +
-        '<path d="M18 8 L46 8 L56 18 L56 46 L46 56 L18 56 L8 46 L8 18 Z" fill="#0C0C0E" stroke="#000" stroke-opacity=".55" stroke-width="1.5"/>' +
-      '</svg>' +
-      '<img src="' + m.img + '" data-mode="cart" data-local="' + m.local + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">' +
-    '</span>';
-  }
   return '<img class="micon ' + (cls||'') + '" src="' + m.img + '" data-mode="' + m.k + '" data-local="' + m.local + '" alt="' + esc(m.full) + '" loading="lazy" referrerpolicy="no-referrer" onerror="modeIconFail(this)">';
 }
 
